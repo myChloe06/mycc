@@ -52,12 +52,32 @@ description: 做什么 + 什么时候触发（这是最重要的字段）
 3. 添加脚本或资源（如需要）
 4. 测试触发词是否有效
 
-## 本仓库包含的示例 Skill
+## 本仓库包含的 Skill
 
-| Skill | 功能 |
-|-------|------|
-| `skill-creator` | 帮助创建新的 Skill |
-| `dashboard` | 能力看板可视化 |
+| Skill | 功能 | 触发词 |
+|-------|------|--------|
+| `setup` | 首次使用引导，交互式完成配置 | `/setup` |
+| `dashboard` | 能力看板可视化 | `/dashboard` |
+| `skill-creator` | 帮助创建新的 Skill | `/skill-creator` |
+| `mycc` | 移动端访问后端，在手机上使用 CC | `/mycc` |
+
+### mycc - 移动端访问
+
+让你在手机浏览器或微信里访问本地的 Claude Code。
+
+**安装依赖**：
+```bash
+cd .claude/skills/mycc/scripts
+npm install
+```
+
+**使用**：
+```bash
+# 在你的项目目录下
+/mycc
+```
+
+**平台支持**：macOS / Linux（Windows 暂不支持，可用 WSL）
 
 ## 更多资源
 
