@@ -35,17 +35,28 @@ MyCC 解决这些问题。它是一个 **Claude Code 系统模板**，让 CC：
 git clone https://github.com/Aster110/mycc.git
 cd mycc
 
-# 2. 复制配置文件
+# 2. 启动 Claude Code
+claude
+
+# 3. 输入 /setup，跟着引导完成配置
+```
+
+CC 会一步步引导你完成初始化，支持中断后继续。
+
+<details>
+<summary>手动配置（可选）</summary>
+
+```bash
+# 复制配置文件
 cp .claude/settings.local.json.example .claude/settings.local.json
 cp 0-System/status.md.example 0-System/status.md
 cp 0-System/context.md.example 0-System/context.md
 
-# 3. 改名字（把 {{YOUR_NAME}} 换成你的名字）
-sed -i '' 's/{{YOUR_NAME}}/你的名字/g' claude.md
-
-# 4. 启动
-claude
+# 改名字（把 {{YOUR_NAME}} 换成你的名字）
+sed -i '' 's/{{YOUR_NAME}}/你的名字/g' CLAUDE.md
 ```
+
+</details>
 
 ## 目录结构
 
@@ -89,10 +100,11 @@ mycc/
 
 ### Skills - 可扩展能力
 
-内置 2 个示例技能：
+内置 3 个技能：
 
 | Skill | 功能 | 触发 |
 |-------|------|------|
+| `/setup` | 首次使用引导，交互式完成配置 | 直接输入 |
 | `/dashboard` | 查看能力看板 | 直接输入 |
 | `/skill-creator` | 创建新技能 | 直接输入 |
 
