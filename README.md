@@ -182,9 +182,9 @@ Claude Code 很强大，但需要配置才能发挥最大价值。
 
 <a href="https://star-history.com/#Aster110/mycc&Date">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date&theme=dark&v=20260127" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date&v=20260127" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Aster110/mycc&type=Date&v=20260127" />
  </picture>
 </a>
 
