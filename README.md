@@ -135,8 +135,6 @@ mycc/
 
 ### 后端启动
 
-> ⚠️ **中国用户注意**：启动后端需要电脑端**全程开启 VPN/代理**，否则 cloudflared 无法连接 Cloudflare 服务器。
-
 ```bash
 # 1. 安装依赖（首次）
 cd .claude/skills/mycc/scripts && npm install && cd -
@@ -152,7 +150,7 @@ cd .claude/skills/mycc/scripts && npm install && cd -
 | 要求 | 说明 |
 |------|------|
 | Claude Code | **必须是官方原版**，fork 版本可能不兼容 |
-| 网络 | **中国用户需全程开启 VPN/代理**（cloudflared + Worker 注册都需要） |
+| 网络 | **需要 VPN/代理**（cloudflared 需要访问外网） |
 | 系统 | ✅ macOS、✅ Linux、❌ Windows、⚠️ WSL（不稳定） |
 
 > ⚠️ **Windows/WSL 用户注意**：目前 Windows 原生和 WSL 环境都存在兼容性问题，建议使用 macOS 或 Linux。如确需使用，可以让 AI 帮你排查，代码在 `.claude/skills/mycc/scripts/`
@@ -161,14 +159,6 @@ cd .claude/skills/mycc/scripts && npm install && cd -
 
 **依赖**：
 - [cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)：`brew install cloudflare/cloudflare/cloudflared`
-
-## 更新日志
-
-**2026-01-28**
-- 后端架构升级：新增重试机制，连接更稳定
-- tunnel 等待改为主动探测（快的时候 2-3 秒就通）
-- 修复后端重启后前端无法自动重连的问题
-- 新增 Worker `/info` 接口用于验证连接
 
 ## 常见问题
 
