@@ -12,7 +12,15 @@ if (!title || !content) {
   process.exit(1);
 }
 
-const webhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/e1f5a4be-6b7d-4d8c-a1e2-41b3285d15e1';
+// 从环境变量或配置文件读取 webhook
+// 用户需要配置自己的飞书 webhook，参考 配置SOP.md
+const webhook = process.env.FEISHU_WEBHOOK || '';
+
+if (!webhook) {
+  console.error('❌ 未配置飞书 webhook');
+  console.error('请设置环境变量 FEISHU_WEBHOOK 或参考 配置SOP.md');
+  process.exit(1);
+}
 
 const card = {
   msg_type: 'interactive',

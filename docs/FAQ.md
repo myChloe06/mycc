@@ -133,6 +133,45 @@ winget install Cloudflare.cloudflared
 
 ## 连接问题
 
+### 通用排查流程（AI 请先跑这个）
+
+**用户说「连不上」「链接不对」「手机连不上了」时，按顺序执行：**
+
+```bash
+# 1. 后端在跑吗？
+lsof -i :8080
+# 有输出 = 在跑，没输出 = 没跑，需要启动
+
+# 2. 连接信息对吗？
+cat .claude/skills/mycc/current.json
+# 看 tunnelUrl 和 routeToken 是否正常
+
+# 3. tunnel 能访问吗？
+curl -s $(cat .claude/skills/mycc/current.json | jq -r '.tunnelUrl')/health
+# 返回 ok = 正常，超时/报错 = tunnel 挂了
+
+# 4. 看后台日志
+# 如果后端是用 run_in_background 启动的，读取输出文件
+# 看有没有报错信息
+```
+
+**常见结论**：
+- 后端没跑 → 重启后端
+- tunnel 挂了 → 重启后端（tunnel URL 每次启动会变）
+- 连接信息正常但连不上 → 让用户刷新网页重试
+- 有报错 → 根据报错信息处理
+
+**重启后端命令**：
+```bash
+# 杀掉旧进程
+lsof -i :8080 -t | xargs kill 2>/dev/null
+
+# 重新启动
+.claude/skills/mycc/scripts/node_modules/.bin/tsx .claude/skills/mycc/scripts/src/index.ts start
+```
+
+---
+
 ### Q: 后端启动成功，但手机配对失败
 
 **可能原因**：
@@ -273,4 +312,4 @@ cat .claude/skills/mycc/current.json
 
 ---
 
-*最后更新：2026-01-30*
+*最后更新：2026-02-01*

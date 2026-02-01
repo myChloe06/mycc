@@ -126,6 +126,54 @@ cc 通过三层记忆来记住你。
 
 ---
 
+# mycc 问题排查（AI 自助）
+
+> 用户说「连不上」「链接不对」「手机连不上了」时，cc 请按以下流程自查。
+
+## 排查流程
+
+```bash
+# 1. 后端在跑吗？
+lsof -i :8080
+# 有输出 = 在跑，没输出 = 没跑
+
+# 2. 连接信息对吗？
+cat .claude/skills/mycc/current.json
+# 看 tunnelUrl 和 routeToken 是否正常
+
+# 3. tunnel 能访问吗？
+curl -s $(cat .claude/skills/mycc/current.json | jq -r '.tunnelUrl')/health
+# 返回 ok = 正常，超时/报错 = tunnel 挂了
+
+# 4. 有报错吗？
+# 如果后端是 run_in_background 启动的，读取输出文件看日志
+```
+
+## 常见结论
+
+| 现象 | 处理 |
+|------|------|
+| 后端没跑 | 重启后端 |
+| tunnel 挂了 | 重启后端（tunnel URL 每次启动会变） |
+| 连接信息正常但连不上 | 让用户刷新网页重试 |
+| 有报错 | 根据报错信息处理 |
+
+## 重启命令
+
+```bash
+# 杀掉旧进程
+lsof -i :8080 -t | xargs kill 2>/dev/null
+
+# 重新启动
+.claude/skills/mycc/scripts/node_modules/.bin/tsx .claude/skills/mycc/scripts/src/index.ts start
+```
+
+## 更多问题
+
+详见 [FAQ 文档](./docs/FAQ.md)
+
+---
+
 # 扩展区（按需添加）
 
 > 以下是可选的扩展功能，根据你的需求添加。
