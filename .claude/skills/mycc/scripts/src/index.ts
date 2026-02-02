@@ -168,7 +168,18 @@ async function startServer(args: string[]) {
     console.log(chalk.green("✓ 已恢复配对状态\n"));
   }
 
-  await server.start();
+  // 启动 HTTP 服务器
+  try {
+    await server.start();
+  } catch (error: any) {
+    if (error.code === 'EADDRINUSE') {
+      console.error(chalk.red(`错误: 端口 ${PORT} 已被占用`));
+      console.error(chalk.yellow('请检查是否有其他 mycc 实例正在运行'));
+      console.error(chalk.yellow(`提示: lsof -i :${PORT}`));
+      process.exit(1);
+    }
+    throw error;
+  }
 
   // 记录任务执行历史到 history.md
   const recordHistory = (taskCwd: string, taskName: string, status: string) => {

@@ -38,37 +38,88 @@ export function getRoot(filePath: string): string {
  * 清理占用指定端口的进程
  */
 export async function killPortProcess(port: number): Promise<void> {
-  try {
-    if (isWindows) {
-      // Windows: netstat + taskkill
-      const result = execSync(
-        `netstat -ano | findstr :${port} | findstr LISTENING`,
-        { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
-      );
-      const lines = result.trim().split("\n");
-      for (const line of lines) {
-        const parts = line.trim().split(/\s+/);
-        const pid = parts[parts.length - 1];
-        if (pid && /^\d+$/.test(pid) && pid !== "0") {
-          try {
-            execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
-          } catch {
-            // 进程可能已经退出
-          }
-        }
+  const maxRetries = 3;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // 检查端口是否被占用
+      const pid = isWindows
+        ? getWindowsPortPid(port)
+        : getUnixPortPid(port);
+
+      if (!pid) {
+        // 端口未被占用，成功
+        return;
       }
-    } else {
-      // Mac/Linux: lsof + kill
-      const pid = execSync(`lsof -i :${port} -t 2>/dev/null`, {
-        encoding: "utf-8",
-      }).trim();
-      if (pid) {
-        execSync(`kill ${pid}`);
-        await sleep(500);
+
+      // 直接强制杀掉进程
+      if (isWindows) {
+        execSync(`taskkill /PID ${pid} /F`, { stdio: "ignore" });
+      } else {
+        execSync(`kill -9 ${pid}`, { stdio: "ignore" });
+      }
+
+      // 等待端口释放（操作系统需要时间清理）
+      await sleep(1000);
+
+      // 验证端口是否已释放
+      const stillOccupied = isWindows
+        ? getWindowsPortPid(port)
+        : getUnixPortPid(port);
+
+      if (!stillOccupied) {
+        // 成功释放
+        return;
+      }
+
+      // 如果还被占用且不是最后一次重试，继续
+      if (attempt < maxRetries) {
+        console.log(`端口 ${port} 仍被占用，重试 ${attempt}/${maxRetries}...`);
+      }
+    } catch (error) {
+      // 命令失败，可能端口未被占用
+      return;
+    }
+  }
+
+  // 所有重试都失败了
+  throw new Error(`无法释放端口 ${port}，请手动检查并关闭占用进程`);
+}
+
+/**
+ * 获取 Unix 系统上占用端口的 PID
+ */
+function getUnixPortPid(port: number): string | null {
+  try {
+    const pid = execSync(`lsof -i :${port} -t 2>/dev/null`, {
+      encoding: "utf-8",
+    }).trim();
+    return pid || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 获取 Windows 系统上占用端口的 PID
+ */
+function getWindowsPortPid(port: number): string | null {
+  try {
+    const result = execSync(
+      `netstat -ano | findstr :${port} | findstr LISTENING`,
+      { encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] }
+    );
+    const lines = result.trim().split("\n");
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      const pid = parts[parts.length - 1];
+      if (pid && /^\d+$/.test(pid) && pid !== "0") {
+        return pid;
       }
     }
+    return null;
   } catch {
-    // 端口未被占用或命令失败，忽略
+    return null;
   }
 }
 

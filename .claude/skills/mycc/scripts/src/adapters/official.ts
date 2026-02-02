@@ -5,7 +5,7 @@
 import { query, type SDKUserMessage } from "@anthropic-ai/claude-code";
 import type { CCAdapter, SSEEvent } from "./interface.js";
 import type { ChatParams, ConversationSummary, ConversationHistory } from "../types.js";
-import { getConversationList, getConversation } from "../history.js";
+import { getConversationListFromIndex, getConversation } from "../history.js";
 import { detectClaudeCliPath } from "../platform.js";
 import { buildMessageContent, type MessageContent } from "../image-utils.js";
 
@@ -83,7 +83,7 @@ export class OfficialAdapter implements CCAdapter {
     total: number;
     hasMore: boolean;
   }> {
-    let conversations = getConversationList(cwd);
+    let conversations = getConversationListFromIndex(cwd);
     const total = conversations.length;
 
     // 如果 limit > 0，只返回前 limit 条

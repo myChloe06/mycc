@@ -22,6 +22,7 @@ export interface Task {
   skill: string;
   desc: string;
   type: "daily" | "weekly" | "once" | "interval";
+  activeHours?: { start: number; end: number }; // 活跃时段（小时），如 {start: 9, end: 24}
 }
 
 // ============================================
@@ -62,10 +63,32 @@ export function parseTasks(content: string | null | undefined): Task[] {
     // 判断任务类型
     const type = detectTaskType(time);
 
-    tasks.push({ time, name, skill, desc, type });
+    // 解析活跃时段（从说明中提取"活跃时段 HH:MM-HH:MM"）
+    const activeHours = parseActiveHours(desc);
+
+    tasks.push({ time, name, skill, desc, type, activeHours });
   }
 
   return tasks;
+}
+
+/**
+ * 从说明中解析活跃时段
+ * 格式：活跃时段 09:00-24:00
+ */
+function parseActiveHours(desc: string): { start: number; end: number } | undefined {
+  const match = desc.match(/活跃时段\s+(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+  if (!match) return undefined;
+
+  const startHour = parseInt(match[1], 10);
+  const endHour = parseInt(match[3], 10);
+
+  // 验证小时数有效性（0-24，24表示次日00:00）
+  if (startHour < 0 || startHour > 24 || endHour < 0 || endHour > 24) {
+    return undefined;
+  }
+
+  return { start: startHour, end: endHour };
 }
 
 /**
@@ -417,13 +440,40 @@ function checkAndExecuteTasks(
 
   // 检查每个任务
   for (const task of tasks) {
-    if (matchTime(task.time, now) && taskLock?.tryAcquire(task.name, task.time, now)) {
-      console.log(`[Scheduler] 执行任务: ${task.name}`);
-      try {
-        executeTask(task, cwd);
-      } catch (error) {
-        console.error(`[Scheduler] 任务执行失败: ${task.name}`, error);
-      }
+    // 1. 检查时间是否匹配
+    if (!matchTime(task.time, now)) continue;
+
+    // 2. 检查是否在活跃时段
+    if (task.activeHours && !isInActiveHours(now, task.activeHours)) {
+      // console.log(`[Scheduler] 跳过任务（非活跃时段）: ${task.name}`);
+      continue;
     }
+
+    // 3. 检查是否已执行过
+    if (!taskLock?.tryAcquire(task.name, task.time, now)) continue;
+
+    // 4. 执行任务
+    console.log(`[Scheduler] 执行任务: ${task.name}`);
+    try {
+      executeTask(task, cwd);
+    } catch (error) {
+      console.error(`[Scheduler] 任务执行失败: ${task.name}`, error);
+    }
+  }
+}
+
+/**
+ * 检查当前时间是否在活跃时段内
+ */
+function isInActiveHours(now: Date, activeHours: { start: number; end: number }): boolean {
+  const currentHour = now.getHours();
+
+  // 处理跨天情况（如 22:00-02:00）
+  if (activeHours.start <= activeHours.end) {
+    // 正常情况：09:00-24:00
+    return currentHour >= activeHours.start && currentHour < activeHours.end;
+  } else {
+    // 跨天情况：22:00-02:00
+    return currentHour >= activeHours.start || currentHour < activeHours.end;
   }
 }

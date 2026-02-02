@@ -77,6 +77,8 @@ export interface ConversationSummary {
   lastTime: string;
   messageCount: number;
   lastMessagePreview: string;
+  customTitle?: string | null;  // 用户自定义标题（null = 未改名）
+  firstPrompt?: string;          // 第一条消息（用于预览）
 }
 
 /** 对话详情 */

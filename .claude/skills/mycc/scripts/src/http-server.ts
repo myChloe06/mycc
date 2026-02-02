@@ -8,6 +8,7 @@ import { generateToken } from "./utils.js";
 import { adapter } from "./adapters/index.js";
 import type { PairState } from "./types.js";
 import { validateImages, type ImageData } from "./image-utils.js";
+import { renameSession } from "./history.js";
 
 const PORT = process.env.PORT || 8080;
 
@@ -66,6 +67,8 @@ export class HttpServer {
         await this.handleHistoryList(req, res);
       } else if (url.pathname.startsWith("/history/") && req.method === "GET") {
         await this.handleHistoryDetail(req, res, url.pathname);
+      } else if (url.pathname === "/chat/rename" && req.method === "POST") {
+        await this.handleRename(req, res);
       } else {
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Not Found" }));
@@ -245,6 +248,45 @@ export class HttpServer {
     }
   }
 
+  private async handleRename(req: http.IncomingMessage, res: http.ServerResponse) {
+    // 验证 token
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.replace("Bearer ", "");
+
+    if (!this.state.paired || token !== this.state.token) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "未授权" }));
+      return;
+    }
+
+    try {
+      const body = await this.readBody(req);
+      const { sessionId, newTitle } = JSON.parse(body);
+
+      // 验证输入
+      if (!sessionId || typeof newTitle !== "string") {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "sessionId and newTitle are required" }));
+        return;
+      }
+
+      // 执行重命名
+      const success = renameSession(sessionId, newTitle, this.cwd);
+
+      if (success) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true }));
+      } else {
+        res.writeHead(404, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Session not found or title is empty" }));
+      }
+    } catch (error) {
+      console.error("[Rename] Error:", error);
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "重命名失败" }));
+    }
+  }
+
   private readBody(req: http.IncomingMessage): Promise<string> {
     return new Promise((resolve, reject) => {
       let body = "";
@@ -255,7 +297,12 @@ export class HttpServer {
   }
 
   start(): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      // 监听错误事件
+      this.server.once('error', (err) => {
+        reject(err);
+      });
+
       this.server.listen(PORT, () => {
         console.log(`[HTTP] 服务启动在端口 ${PORT}`);
         resolve(Number(PORT));
