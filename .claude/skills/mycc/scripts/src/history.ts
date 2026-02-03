@@ -202,15 +202,16 @@ export function getConversation(
   const allMessages: unknown[] = [];
   let lastSummaryIndex = -1;
 
-  // 第一遍：解析所有消息，找到最后一个 summary 的位置
+  // 第一遍：解析所有消息，记录所有 summary 的位置
+  const summaryIndexes: number[] = [];
   for (let i = 0; i < lines.length; i++) {
     try {
       const parsed = JSON.parse(lines[i]);
       allMessages.push(parsed);
 
-      // 记录最后一个 summary 的索引
+      // 记录所有 summary 的索引
       if (parsed.type === "summary") {
-        lastSummaryIndex = i;
+        summaryIndexes.push(i);
       }
     } catch {
       // 忽略解析错误的行
@@ -218,13 +219,33 @@ export function getConversation(
     }
   }
 
-  // 第二遍：只收集最后一个 summary 之后的消息
+  // 找到"之后有实际消息"的最后一个 summary
+  // 从后往前遍历 summary，找到第一个后面有实际消息的
+  lastSummaryIndex = -1;
+  for (let j = summaryIndexes.length - 1; j >= 0; j--) {
+    const summaryIdx = summaryIndexes[j];
+    // 检查这个 summary 之后是否有实际消息（非 summary）
+    let hasMessagesAfter = false;
+    for (let k = summaryIdx + 1; k < allMessages.length; k++) {
+      const msg = allMessages[k];
+      if (msg && typeof msg === "object" && "type" in msg && (msg as any).type !== "summary") {
+        hasMessagesAfter = true;
+        break;
+      }
+    }
+    if (hasMessagesAfter) {
+      lastSummaryIndex = summaryIdx;
+      break;
+    }
+  }
+
+  // 第二遍：只收集最后一个有效 summary 之后的消息
   const messages: RawHistoryLine[] = [];
-  const startIndex = lastSummaryIndex + 1; // summary 之后开始
+  const startIndex = lastSummaryIndex + 1; // summary 之后开始（如果没有 summary 则从 0 开始）
 
   for (let i = startIndex; i < allMessages.length; i++) {
     const msg = allMessages[i];
-    if (msg && typeof msg === "object" && "type" in msg) {
+    if (msg && typeof msg === "object" && "type" in msg && (msg as any).type !== "summary") {
       messages.push(msg as RawHistoryLine);
     }
   }

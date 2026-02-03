@@ -40,7 +40,7 @@ export class OfficialAdapter implements CCAdapter {
   async *chat(params: ChatParams): AsyncIterable<SSEEvent> {
     const { message, sessionId, cwd, images } = params;
 
-    // 构造 SDK 选项（Windows 不指定 executable，使用 native binary）
+    // 构造 SDK 选项
     const sdkOptions: Parameters<typeof query>[0]["options"] = {
       pathToClaudeCodeExecutable: CLAUDE_CLI_PATH,
       cwd: cwd || process.cwd(),

@@ -188,11 +188,34 @@ export function detectClaudeCliPath(): { executable: string; cliPath: string } {
       try {
         const result = execSync("which claude", { encoding: "utf-8" }).trim();
         if (result) {
-          // 检查是否是 npm 全局安装（需要 node）
-          const cliJsPath = join(dirname(result), "node_modules", "@anthropic-ai", "claude-code", "cli.js");
-          if (existsSync(cliJsPath)) {
-            return { executable: "node", cliPath: cliJsPath };
+          // 方法1: 用 npm root -g 获取全局模块路径（最可靠）
+          try {
+            const npmGlobalRoot = execSync("npm root -g", { encoding: "utf-8" }).trim();
+            const cliJsPath = join(npmGlobalRoot, "@anthropic-ai", "claude-code", "cli.js");
+            if (existsSync(cliJsPath)) {
+              return { executable: "node", cliPath: cliJsPath };
+            }
+          } catch {
+            // npm root -g 失败，继续尝试其他方法
           }
+
+          // 方法2: 检查常见的全局安装路径
+          const commonGlobalPaths = [
+            "/usr/local/lib/node_modules/@anthropic-ai/claude-code/cli.js",
+            "/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/cli.js",
+          ];
+          for (const p of commonGlobalPaths) {
+            if (existsSync(p)) {
+              return { executable: "node", cliPath: p };
+            }
+          }
+
+          // 方法3: which claude 返回的直接就是 cli.js（symlink 解析后）
+          if (result.endsWith("cli.js")) {
+            return { executable: "node", cliPath: result };
+          }
+
+          // 都没找到，用 claude 命令本身
           return { executable: "claude", cliPath: result };
         }
       } catch {

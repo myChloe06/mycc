@@ -38,6 +38,7 @@ export async function executeChat(options: ChatOptions): Promise<void> {
         // 小程序端无法交互确认权限，使用 bypassPermissions
         // 注意：这需要用户信任，后续可以改成更安全的模式
         permissionMode: "bypassPermissions",
+        // SDK 不支持 Skill 工具，工蚁需手动读取 skill 文件执行
       },
     })) {
       // 提取 session_id
