@@ -306,15 +306,19 @@ export function getConversationList(cwd: string, limit?: number): ConversationSu
   // 按 mtime 降序排序
   let sorted = [...files.entries()].sort((a, b) => b[1].mtime - a[1].mtime);
 
-  // 在 hydrate 前应用 limit（只读取 top N 文件）
-  if (limit && limit > 0) {
-    sorted = sorted.slice(0, limit);
-  }
-
   // Hydrate：读取每个文件的 head/tail 提取摘要
   const result: ConversationSummary[] = [];
 
+  // 按 sessionId 去重（防止同一个会话重复显示）
+  const seenSessionIds = new Set<string>();
+
   for (const [sessionId, info] of sorted) {
+    // 跳过已处理的会话
+    if (seenSessionIds.has(sessionId)) {
+      continue;
+    }
+    seenSessionIds.add(sessionId);
+
     const summary = readFileSummary(info.path, info.size);
 
     // 过滤无内容的会话（既没有 firstPrompt 也没有 customTitle）
@@ -330,6 +334,11 @@ export function getConversationList(cwd: string, limit?: number): ConversationSu
       lastMessagePreview: summary.firstPrompt || "(无预览)",
       modified: new Date(info.mtime).toISOString(),
     });
+
+    // 应用 limit（在结果层面，确保返回指定数量的不重复会话）
+    if (limit && result.length >= limit) {
+      break;
+    }
   }
 
   return result;
