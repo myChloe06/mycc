@@ -20,6 +20,9 @@ const PAIR_MAX_ATTEMPTS = 5;
 const PAIR_LOCK_MS = 5 * 60 * 1000;
 const pairAttempts = new Map<string, { count: number; lockedUntil: number }>();
 
+/** 测试用：重置速率限制状态 */
+export function _resetPairAttempts() { pairAttempts.clear(); }
+
 export class HttpServer {
   private server: http.Server;
   private state: PairState;

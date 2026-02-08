@@ -45,7 +45,7 @@ export function encodeProjectPath(projectPath: string): string {
   const root = findProjectRoot(projectPath) || projectPath;
 
   // 与 CC 官方编码逻辑对齐：只保留字母和数字，其他全部替换为 "-"
-  return root.replace(/[^a-zA-Z0-9]/g, "-");
+  return root.replace(/\/$/, "").replace(/[^a-zA-Z0-9]/g, "-");
 }
 
 /**
