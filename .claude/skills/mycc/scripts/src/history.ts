@@ -44,8 +44,12 @@ export function encodeProjectPath(projectPath: string): string {
   // 先找到项目根目录（统一逻辑，避免历史记录分散）
   const root = findProjectRoot(projectPath) || projectPath;
 
-  // 再编码
-  return root.replace(/\/$/, "").replace(/[/\\:._]/g, "-");
+  // 编码：Windows 路径不区分大小写，统一转小写确保一致性
+  let encoded = root.replace(/\/$/, "");
+  if (process.platform === "win32") {
+    encoded = encoded.toLowerCase();
+  }
+  return encoded.replace(/[/\\:._]/g, "-").replace(/\s+/g, "-");
 }
 
 /**
