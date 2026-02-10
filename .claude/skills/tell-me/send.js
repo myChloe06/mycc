@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * 飞书通知脚本 - 跨平台版本
+ * 飞书通知脚本 - 直接生成并发送
  * 用法: node send.js "标题" "内容" [颜色]
- * 颜色: blue(默认), green, orange, red
  */
 
 const [,, title, content, color = 'blue'] = process.argv;
@@ -12,21 +11,10 @@ if (!title || !content) {
   process.exit(1);
 }
 
-// ⚠️ 请替换成你自己的飞书 webhook
-// 参考 配置SOP.md 获取 webhook 地址
-const webhook = 'YOUR_FEISHU_WEBHOOK_HERE';
+const webhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/74d04a99-ba1d-4567-97c2-e0e2926c6b2f';
 
-if (webhook === 'YOUR_FEISHU_WEBHOOK_HERE') {
-  console.error('❌ 飞书 webhook 未配置');
-  console.error('');
-  console.error('请按以下步骤配置：');
-  console.error('1. 打开飞书客户端 → 创建群 → 设置 → 群机器人 → 添加自定义机器人');
-  console.error('2. 复制 Webhook 地址');
-  console.error('3. 编辑 .claude/skills/tell-me/send.js，替换第 9 行的 webhook');
-  console.error('');
-  console.error('详见：.claude/skills/tell-me/配置SOP.md');
-  process.exit(1);
-}
+// 处理换行符
+const processedContent = content.replace(/\\n/g, '\n');
 
 const card = {
   msg_type: 'interactive',
@@ -38,7 +26,7 @@ const card = {
     elements: [
       {
         tag: 'div',
-        text: { content, tag: 'lark_md' }
+        text: { content: processedContent, tag: 'lark_md' }
       },
       {
         tag: 'note',
@@ -50,7 +38,7 @@ const card = {
 
 fetch(webhook, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json; charset=utf-8' },
   body: JSON.stringify(card)
 })
   .then(res => res.json())

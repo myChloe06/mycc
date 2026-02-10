@@ -1,0 +1,30 @@
+{
+  "msg_type": "interactive",
+  "card": {
+    "header": {
+      "title": {
+        "content": "📌 测试",
+        "tag": "plain_text"
+      },
+      "template": "green"
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "content": "**测试**：\n第一行\n\n第二行",
+          "tag": "lark_md"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "⏰ 测试"
+          }
+        ]
+      }
+    ]
+  }
+}

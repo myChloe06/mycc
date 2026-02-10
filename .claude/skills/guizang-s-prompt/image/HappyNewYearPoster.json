@@ -1,0 +1,116 @@
+{
+    "applicable_models": [
+        "Seedream",
+        "Nano Banana Pro"
+    ],
+    "subject": {
+        "IP_Name": "Enter the names of your favorite games, novels, movies, or TV shows.",
+        "description": "A visually striking, masterpiece-level 3D New Year's greeting card poster based on [IP Name]. Vertical composition with a deep, window-like groove in the center.",
+        "material_style": "Felt and coarse knitting wool texture, realistic and delicate, blind box toy texture.",
+        "central_character": {
+            "identity": "A cute Q-version felt Pony (representing the Year of the Horse)",
+            "expression": "Naive and charming (憨态可掬), festive",
+            "clothing": "Red festive vest, traditional tiger-head hat",
+            "action": "Standing in the center as a festival messenger"
+        },
+        "secondary_characters": {
+            "identity": "Classic characters from the IP (Q-version felt style)",
+            "clothing": "Traditional festive Tang suit or Hanfu",
+            "action": "Interacting within the scene, adding story elements"
+        },
+        "scene_elements": {
+            "architecture": "Iconic buildings from the IP in Q-version felt, arranged with depth and layers",
+            "ground": "Thick creamy knitted snow",
+            "vegetation": "Peach tree or Kumquat tree hung with red lanterns, Chinese knots, and blessing cards",
+            "props": "Scattered felt firecrackers, gold ingots, snow-covered shrubs"
+        }
+    },
+    "accessories": {
+        "title_design": {
+            "structure": "Independent 3D volumetric letters suspended in mid-air (No background plate/card)",
+            "main_text": {
+                "content": "Happy New Year",
+                "font_style": "3D fluid art font, thick glass volume"
+            },
+            "sub_text": {
+                "content": "新年快乐",
+                "font_style": "Bold Chinese Calligraphy (中国书法), 3D extruded strokes"
+            },
+            "material_properties": {
+                "type": "Matte Frosted Glass (applied directly to the text volume)",
+                "color": "Deep red to light red gradient",
+                "surface": "Soft matte finish, semi-transparent",
+                "optical_effects": "Dreamy colorful caustics casting shadows onto the felt scene below"
+            }
+        },
+        "bottom_layout": {
+            "content": "Random classic quote related to New Year, blessings, or hope",
+            "font_style": "Large, elegant Western Handwritten Serif, rich ink color",
+            "source_note": "Small Chinese font citing the source"
+        }
+    },
+    "photography": {
+        "renderer": "C4D, Octane Render",
+        "resolution": "8K",
+        "camera_style": "Macro photography perspective",
+        "shot_type": "Vertical Poster, Close-up on miniature",
+        "depth_of_field": "Shallow depth of field (background bokeh)",
+        "lighting": "Soft and uniform, breathing light effect, atmospheric depth",
+        "texture_quality": "Masterpiece, rich details, mixture of felt and frosted glass"
+    },
+    "background": {
+        "setting": "Oriental ink wash void environment with flowing light mist",
+        "colors": "Elegant pale champagne gold or high-grade soft mist red",
+        "external_decor": [
+            "Red velvet silk ribbons dancing in the air",
+            "Fluid gold lines",
+            "Blooming red plum branches",
+            "Strings of festive red lanterns",
+            "Plump persimmons or hawthorn berries",
+            "Crystal clear geometric snowflakes",
+            "Glowing gold copper coin strings"
+        ],
+        "atmosphere": "Explosive festive atmosphere, dynamic composition",
+        "positioning": "Card appears suspended in clouds with soft shadow at the bottom"
+    },
+    "the_vibe": {
+        "mood": "Festive, Oriental, Warm, Exquisite, Joyful",
+        "culture": "Chinese New Year, Year of the Horse",
+        "aesthetic": "High-end commercial design, Cuteness mixed with elegance"
+    },
+    "constraints": {
+        "must_keep": [
+            "Felt texture",
+            "Chinese New Year elements",
+            "Year of the Horse Pony",
+            "Volumetric glass text (No signboard)",
+            "Calligraphy text",
+            "Ink wash background"
+        ],
+        "avoid": [
+            "Santa Claus",
+            "Christmas trees",
+            "Western Christmas decorations",
+            "Real photography style",
+            "Flat 2D illustration",
+            "Rectangular glass plate behind text",
+            "Signboard",
+            "Text on a card"
+        ]
+    },
+    "negative_prompt": [
+        "Santa Claus",
+        "Christmas tree",
+        "rectangular background plate",
+        "glass sign",
+        "text box",
+        "holding a sign",
+        "photorealistic human",
+        "low resolution",
+        "blurry",
+        "flat colors",
+        "dark",
+        "horror",
+        "distorted text"
+    ]
+}

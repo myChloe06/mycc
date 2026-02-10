@@ -1,0 +1,99 @@
+{
+    "applicable_models": [
+        "Seedream",
+        "Nano Banana Pro"
+    ],
+    "subject": {
+        "title": "Merry Christmas Poster",
+        "description": "基于[哈利波特]的设定，设计一张极具视觉张力的大师级3D圣诞卡片海报。画面主体是一张超大的竖向构图的、厚重的精致3D贺卡，卡片中央是一个深邃的橱窗式凹槽。",
+        "material_style": "材质全部为羊毛毡与粗棒针编织，质感真实细腻。",
+        "central_character": {
+            "identity": "经典 IP 角色（Q版毛毡化）",
+            "expression": "互动，故事感",
+            "clothing": "圣诞装束",
+            "action": "在场景中互动，给场景增添故事感"
+        },
+        "secondary_characters": {
+            "identity": "标志性建筑或场景的Q版毛毡模型",
+            "clothing": "",
+            "action": "以前后遮挡的关系排列，形成丰富的层次感"
+        },
+        "scene_elements": {
+            "architecture": "标志性建筑或场景的Q版毛毡模型（如霍格沃茨城堡、哈尔的移动城堡等）",
+            "ground": "厚实的奶油色编织雪地",
+            "vegetation": "挂满彩球的主圣诞树，被雪覆盖的灌木、松果和与该作品风格相符的植物",
+            "props": "橱窗内悬浮着静止的、像糖粉一样的白色雪花微粒"
+        }
+    },
+    "accessories": {
+        "title_design": {
+            "structure": "悬浮在卡片上方",
+            "main_text": {
+                "content": "Merry Christmas",
+                "font_style": "3D流体艺术字体，倾斜"
+            },
+            "sub_text": {
+                "content": "圣诞快乐",
+                "font_style": "3D流体艺术字体"
+            },
+            "material_properties": {
+                "type": "半透明磨砂玻璃",
+                "color": "深红到浅红渐变",
+                "surface": "柔和的曲面哑光质感",
+                "optical_effects": "光线穿透字体投射出梦幻的彩色焦散，与下方温暖的毛毡形成材质对比"
+            }
+        },
+        "bottom_layout": {
+            "content": "随机选取一句与圣诞或爱相关的经典影视/小说名言",
+            "font_style": "优雅潇洒的西文手写衬线体 (Handwritten Serif)，墨色浓郁，字体较大",
+            "source_note": "在名言下方用小号中文字体标注出处"
+        }
+    },
+    "photography": {
+        "renderer": "C4D，Octane渲染",
+        "resolution": "8K",
+        "camera_style": "微距摄影视角",
+        "shot_type": "竖向构图，超大的精致3D贺卡",
+        "depth_of_field": "浅景深（背景虚化）",
+        "lighting": "光线柔和均匀，具有强烈的呼吸感和纵深感",
+        "texture_quality": "盲盒玩具质感混合磨砂玻璃艺术，色彩鲜艳且高级，杰作"
+    },
+    "background": {
+        "setting": "带有淡淡水墨晕染肌理和流动光雾的虚空环境",
+        "colors": "雅致的淡香槟金或高级柔雾红",
+        "external_decor": [
+            "红色的天鹅绒丝带",
+            "流体金线条",
+            "结霜的松针枝",
+            "红润饱满的冬青果",
+            "晶莹剔透的几何雪花",
+            "发光的金色铃铛"
+        ],
+        "atmosphere": "爆炸般的节日氛围，动态美，构图饱满",
+        "positioning": "卡片仿佛悬浮在云端，底部有柔和的投影，利用虚实对比完美衬托出中央模型的珍贵与精致"
+    },
+    "the_vibe": {
+        "mood": "极具视觉张力，丰富，拥挤，热闹，精致",
+        "culture": "圣诞节",
+        "aesthetic": "大师级3D，盲盒玩具质感"
+    },
+    "constraints": {
+        "must_keep": [
+            "羊毛毡材质",
+            "3D流体艺术字体",
+            "水墨流光虚空背景",
+            "Q版毛毡模型"
+        ],
+        "avoid": [
+            "呆板的数据"
+        ]
+    },
+    "negative_prompt": [
+        "low resolution",
+        "blurry",
+        "flat colors",
+        "dark",
+        "horror",
+        "distorted text"
+    ]
+}

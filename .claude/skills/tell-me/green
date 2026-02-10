@@ -1,0 +1,30 @@
+{
+  "msg_type": "interactive",
+  "card": {
+    "header": {
+      "title": {
+        "content": "📌 D:\\Claude_Code\\0131 mycc\\.claude\\skills\\tell-me\\.send-helper.js",
+        "tag": "plain_text"
+      },
+      "template": "**状态测试**：这是粗体文字\\n\\n*这是斜体文字*\\n\\n**列表测试**：\\n- 第一项\\n- 第二项\\n- 第三项\\n\\n**空行测试**：\\n\\n上面有空行\\n这段话应该在新的一行。"
+    },
+    "elements": [
+      {
+        "tag": "div",
+        "text": {
+          "content": "【测试】排版修复v3",
+          "tag": "lark_md"
+        }
+      },
+      {
+        "tag": "note",
+        "elements": [
+          {
+            "tag": "plain_text",
+            "content": "⏰ 2026/2/10 18:26:58"
+          }
+        ]
+      }
+    ]
+  }
+}
