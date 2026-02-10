@@ -1,6 +1,6 @@
 # Skills 和 MCPs 清单
 
-更新时间：2026-02-10 22:51
+更新时间：2026-02-10 23:00
 
 > 本文档记录当前项目安装的所有 Skills 和 MCPs，用于快速重装和迁移到新项目。
 
@@ -145,6 +145,80 @@
   - 需要 Google NotebookLM 访问权限
   - 详细配置见 skill 目录下的 `AUTHENTICATION.md`
 - **注意**：此 skill 需要 Google 账户授权和 NotebookLM 访问权限
+
+### superpowers（Plan 模式升级版）
+
+- **来源**：[obra/superpowers](https://github.com/obra/superpowers)
+- **功能**：Plan 模式升级版，提供头脑风暴、需求文档、开发计划、测试 cases 等功能。包含多个子技能：
+  - **brainstorming**：苏格拉底式设计优化，头脑风暴
+  - **planning**：开发计划和任务分解
+  - **testing**：测试用例生成
+  - **documentation**：需求文档生成
+- **Star 数**：~39,000
+- **触发词**："头脑风暴"、"需求分析"、"开发计划"、"测试用例"
+- **配置**：需要配置 GEMINI_API_KEY
+- **推荐指数**：⭐⭐⭐⭐⭐
+
+### planning-with-files（Manus 工作流复刻）
+
+- **来源**：[OthmanAdi/planning-with-files](https://github.com/OthmanAdi/planning-with-files)
+- **功能**：用 markdown 文件管理任务计划和进度，复刻 Manus 工作流。支持任务分解、进度跟踪、状态管理。
+- **Star 数**：~11,700
+- **触发词**："任务计划"、"项目管理"、"进度跟踪"、"任务分解"
+- **配置**：使用 markdown 文件作为任务数据库
+- **推荐指数**：⭐⭐⭐⭐⭐
+
+### markitdown（微软文档转换工具）
+
+- **来源**：[microsoft/markitdown](https://github.com/microsoft/markitdown)
+- **功能**：微软文档转换工具，支持 PDF/PPT/图像/音频转 Markdown。保留文档结构、格式处理。
+- **Star 数**：~86,000
+- **触发词**："转 markdown"、"文档转换"、"PDF 转 MD"、"PPT 转 MD"
+- **配置**：
+  - 需要安装依赖：`npm install`
+  - 支持 CLI 命令行工具
+- **推荐指数**：⭐⭐⭐⭐
+
+### anthropics/skills（官方 Skills 集合）
+
+- **来源**：[anthropics/skills](https://github.com/anthropics/skills)
+- **功能**：官方 skills 集合，包含：
+  - **skill-creator**：创建新 skill（已安装）
+  - **frontend-design**：前端设计和 UI/UX 实现
+  - **其他官方技能**
+- **Star 数**：~57,000
+- **触发词**：各子技能有各自的触发词
+- **配置**：无需特殊配置
+- **推荐指数**：⭐⭐⭐⭐⭐
+
+### Open-AutoGLM（Z.AI 官方 Skills）
+
+- **来源**：[zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
+- **功能**：z.ai 开源的官方 Skills，包含 14 个技能模块：
+  - **frontend-design**：前端设计和 UI/UX 实现（React, TypeScript, Tailwind CSS）
+  - **ASR**：语音转文字（支持 base64 音频）
+  - **LLM**：对话式 AI 和文本生成
+  - **TTS**：文字转语音（多种声音、可调节语速）
+  - **VLM**：图像理解和多模态交互
+  - **canvas-design**：画布设计，创建视觉艺术（PNG 和 PDF）
+  - **docx**：Word 文档处理
+  - **pdf**：PDF 操作工具
+  - **pptx**：PowerPoint 处理
+  - **image-generation**：AI 图像生成
+  - **video-generation**：AI 视频生成
+  - **web-reader**：网页内容提取
+  - **web-search**：网络搜索能力
+  - **xlsx**：Excel 电子表格
+- **Star 数**：~22,800
+- **触发词**：各子技能有各自的触发词
+- **配置**：
+  - 需要 API Key 配置
+  - 某些技能需要特定环境变量
+- **推荐指数**：⭐⭐⭐⭐⭐
+
+**⚠️ 安全注意**：
+- 官方仓库：`zai-org/Open-AutoGLM`（正确）
+- 非官方仓库：`huang-x-h/z-skills`（0 stars，请勿使用）
 
 ---
 
