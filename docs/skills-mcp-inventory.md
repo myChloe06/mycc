@@ -1,6 +1,6 @@
 # Skills 和 MCPs 清单
 
-更新时间：2026-02-10
+更新时间：2026-02-10 22:51
 
 > 本文档记录当前项目安装的所有 Skills 和 MCPs，用于快速重装和迁移到新项目。
 
@@ -133,6 +133,18 @@
 - **功能**：归藏创作的优质 AI 提示词库，涵盖图像、文本和视频生成
 - **触发词**：无特定触发词，作为参考资源使用
 - **配置**：无特殊配置，纯提示词库
+
+### notebooklm-skill（Google NotebookLM 集成）
+
+- **来源**：[PleasePrompto/notebooklm-skill](https://github.com/PleasePrompto/notebooklm-skill)
+- **功能**：直接从 Claude Code 查询 Google NotebookLM 笔记本，获得基于来源的、有引用支持的 Gemini 回答。包含浏览器自动化、库管理、持久化认证。通过仅限文档响应大幅减少幻觉。
+- **触发词**：查询笔记本、分析笔记、NotebookLM 相关请求时自动触发
+- **配置**：
+  - 需要 Python 环境
+  - 需要 `GEMINI_API_KEY` 环境变量
+  - 需要 Google NotebookLM 访问权限
+  - 详细配置见 skill 目录下的 `AUTHENTICATION.md`
+- **注意**：此 skill 需要 Google 账户授权和 NotebookLM 访问权限
 
 ---
 

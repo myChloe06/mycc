@@ -226,6 +226,159 @@ lsof -i :8080 -t | xargs kill 2>/dev/null
 
 ---
 
+# Git 仓库管理（重要）
+
+## 仓库地址
+
+**1. mycc skill 更新源**
+- 仓库：https://github.com/Aster110/mycc
+- 用途：拉取 mycc skill 的最新代码
+- 使用场景：更新 mycc 后端服务
+
+**2. 项目存档仓库**
+- 仓库：https://github.com/myChloe06/mycc
+- 用途：项目代码存档、推送、协作
+- 使用场景：日常开发、代码备份、团队共享
+
+---
+
+## 更新 mycc skill 的规则（必须严格遵守）
+
+**⚠️ 重要警告**：从 https://github.com/Aster110/mycc 拉取 mycc skill 最新代码时，**只更新 mycc 相关文件**，不能覆盖以下内容：
+
+### ❌ 绝对不能覆盖的内容
+
+**1. CLAUDE.md**
+- 只能增加内容，绝对禁止删除或修改现有内容
+
+**2. 飞书通知配置**
+- `.claude/skills/tell-me/send.js` 中的 webhook URL
+- 这个是配置好的，不能从远程仓库覆盖
+
+**3. 其他自定义 Skills**
+- 所有 `.claude/skills/` 下的 skill（除了 mycc）
+- 这些是用户安装的，不能被覆盖：
+  - code-review
+  - agent-browser-skill
+  - find-skills-skill
+  - Document-illustrator-skill
+  - NanoBanana-PPT-Skills
+  - Humanizer-zh
+  - guizang-s-prompt
+  - 等等...
+
+**4. 项目文档**
+- `docs/` 目录下的所有文档
+- 这些是项目记录，不能被覆盖
+
+**5. MCP 配置**
+- `.mcp.json`
+- 这是用户配置的 MCP 服务器，不能被覆盖
+
+### ✅ 可以更新的内容
+
+**仅限 mycc skill 相关文件**：
+- `.claude/skills/mycc/` 目录
+- `.claude/skills/mycc/scripts/` 目录
+- `.claude/skills/mycc/scripts/src/` 目录
+
+### 更新流程
+
+**拉取 mycc 最新代码的安全流程**：
+
+1. **检查本地修改**
+   ```bash
+   git status
+   ```
+
+2. **保存本地修改到临时分支**（如果有）
+   ```bash
+   git checkout -b backup-$(date +%Y%m%d)
+   git add .
+   git commit -m "备份：拉取 mycc 最新代码前保存"
+   git checkout main
+   ```
+
+3. **只拉取 mycc 相关文件**
+   ```bash
+   # 只更新 mycc skill 文件
+   git checkout origin/main -- .claude/skills/mycc/
+   ```
+
+4. **验证没有被覆盖的文件**
+   ```bash
+   # 检查重要文件是否被修改
+   git diff HEAD -- CLAUDE.md
+   git diff HEAD -- .claude/skills/tell-me/send.js
+   git diff HEAD -- .mcp.json
+   ```
+
+5. **提交更新**
+   ```bash
+   git add .claude/skills/mycc/
+   git commit -m "chore: 更新 mycc skill 到最新版本"
+   ```
+
+---
+
+## 新增 Skill 规则（必须严格遵守）
+
+**⚠️ 重要**：每次新增 skill 后，**必须**更新 `docs/skills-mcp-inventory.md` 文档。
+
+### 必须记录的信息
+
+对于每个新增的 skill，需要记录：
+
+1. **基本信息**：
+   - skill 名称
+   - 来源（GitHub 仓库或本地开发）
+   - 功能描述
+   - 触发词
+
+2. **配置信息**：
+   - 是否需要特殊配置
+   - 需要哪些环境变量
+   - 依赖要求
+
+3. **更新时间**：
+   - 更新文档顶部的"更新时间"戳
+
+### 更新流程
+
+**新增 skill 后的标准流程**：
+
+1. **安装 skill**
+   ```bash
+   cd .claude/skills
+   git clone <skill-repo-url>
+   ```
+
+2. **立即更新文档**
+   ```bash
+   # 编辑 docs/skills-mcp-inventory.md
+   # 添加新 skill 的信息
+   ```
+
+3. **验证文档**
+   ```bash
+   git diff docs/skills-mcp-inventory.md
+   ```
+
+4. **提交更改**
+   ```bash
+   git add .claude/skills/<new-skill>/ docs/skills-mcp-inventory.md
+   git commit -m "feat: 添加 <skill-name> skill"
+   ```
+
+### 目的
+
+- ✅ 方便后续重装或迁移
+- ✅ 团队协作时共享配置
+- ✅ 快速了解每个 skill 的用途和配置
+- ✅ 便于维护和管理
+
+---
+
 # 扩展区（按需添加）
 
 > 以下是可选的扩展功能，根据你的需求添加。
