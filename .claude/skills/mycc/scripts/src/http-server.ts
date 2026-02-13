@@ -221,7 +221,8 @@ export class HttpServer {
     }
 
     const hasImages = images && images.length > 0;
-    console.log(`[CC] 收到消息: ${message.substring(0, 50)}...${hasImages ? ` (附带 ${images.length} 张图片)` : ""}`);
+    const startTime = Date.now();
+    console.log(`[CC] 📨 收到消息: ${message.substring(0, 50)}${hasImages ? ` (附带 ${images.length} 张图片)` : ""}`);
 
     // 设置 SSE 响应头
     res.writeHead(200, {
@@ -231,28 +232,42 @@ export class HttpServer {
     });
 
     let currentSessionId = sessionId;
+    let eventCount = 0;
 
     try {
+      console.log(`[CC] 🔵 开始调用 adapter.chat()`);
+
       // 使用 adapter 的 chat 方法（返回 AsyncIterable）
       for await (const data of adapter.chat({ message, sessionId, cwd: this.cwd, images, model: model || undefined })) {
+        eventCount++;
+
         // 提取 session_id
         if (data && typeof data === "object" && "type" in data) {
           if (data.type === "system" && "session_id" in data) {
             currentSessionId = data.session_id as string;
+            console.log(`[CC] 📌 收到 session_id: ${currentSessionId}`);
           }
         }
+
+        console.log(`[CC] 📤 发送事件 #${eventCount}: ${JSON.stringify(data).substring(0, 100)}...`);
         res.write(`data: ${JSON.stringify(data)}\n\n`);
       }
 
       // 完成
+      const duration = Date.now() - startTime;
+      console.log(`[CC] ✅ 完成，总耗时: ${duration}ms，共发送 ${eventCount} 个事件`);
       res.write(`data: ${JSON.stringify({ type: "done", sessionId: currentSessionId })}\n\n`);
       res.end();
-      console.log(`[CC] 完成`);
     } catch (error) {
+      const duration = Date.now() - startTime;
       const errMsg = error instanceof Error ? error.message : String(error);
+
+      console.error(`[CC] ❌ 错误: ${errMsg}`);
+      console.error(`[CC] ❌ 错误堆栈: ${error instanceof Error ? error.stack : 'N/A'}`);
+      console.error(`[CC] ❌ 总耗时: ${duration}ms`);
+
       res.write(`data: ${JSON.stringify({ type: "error", error: errMsg })}\n\n`);
       res.end();
-      console.error(`[CC] 错误: ${errMsg}`);
     }
   }
 

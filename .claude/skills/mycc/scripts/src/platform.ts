@@ -8,6 +8,7 @@
 import { execSync, spawn } from "child_process";
 import { existsSync } from "fs";
 import { parse, join } from "path";
+import { fileURLToPath } from "url";
 import {
   resolveExecutable,
   envVar,
@@ -150,7 +151,7 @@ export function detectCloudflaredPath(): string {
 
 /**
  * 检测 Claude CLI 路径
- * 策略链：环境变量 → npm root -g → 已知 cli.js 路径 → which/where → 已知 native 路径 → 裸命令名
+ * 策略链：本地 node_modules → 环境变量 → npm root -g → 已知 cli.js 路径 → which/where → 已知 native 路径 → 裸命令名
  *
  * 返回 { executable, cliPath }：
  * - npm 安装：{ executable: "node", cliPath: "/path/to/cli.js" }
@@ -159,6 +160,14 @@ export function detectCloudflaredPath(): string {
 export function detectClaudeCliPath(): { executable: string; cliPath: string } {
   const result = resolveExecutable(
     [
+      // 优先使用本地 node_modules（与 SDK 版本匹配）
+      knownPaths(
+        () => {
+          const localPath = join(fileURLToPath(import.meta.url), "../../node_modules/@anthropic-ai/claude-code/cli.js");
+          return [localPath];
+        },
+        { executable: "node" }
+      ),
       envVar("CLAUDE_PATH"),
       // 动态探测：npm root -g（跨平台，覆盖 nvm/volta/标准安装）
       npmGlobal("@anthropic-ai/claude-code", "cli.js"),
