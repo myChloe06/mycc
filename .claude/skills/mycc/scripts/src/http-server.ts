@@ -14,8 +14,11 @@ import type { PairState } from "./types.js";
 import { validateImages, type ImageData } from "./image-utils.js";
 import { renameSession } from "./history.js";
 import { listSkills } from "./skills.js";
+import { ChannelManager, WebChannel, FeishuChannel } from "./channels/index.js";
+import { loadConfig } from "./config.js";
+import type { DeviceConfig } from "./types.js";
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 18080;
 
 export interface TlsConfig {
   certPath: string;
@@ -36,6 +39,9 @@ export class HttpServer {
   private cwd: string;
   private onPaired?: (token: string) => void;
   private isTls: boolean;
+  private channelManager: ChannelManager;
+  private currentSessionId: string | null = null; // 保存当前活跃会话 ID
+  private feishuChannel: FeishuChannel | null = null; // 保存飞书通道实例
 
   constructor(pairCode: string, cwd: string, authToken?: string, tls?: TlsConfig) {
     this.cwd = cwd;
@@ -45,6 +51,22 @@ export class HttpServer {
       paired: !!authToken,
       token: authToken || null,
     };
+
+    // 初始化通道管理器
+    this.channelManager = new ChannelManager();
+
+    // 注册飞书通道（如果配置了环境变量）
+    if (process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET) {
+      this.feishuChannel = new FeishuChannel();
+      // 设置飞书消息回调
+      this.feishuChannel.onMessage(async (message: string, images?: Array<{ data: string; mediaType: string }>) => {
+        await this.processFeishuMessage(message, images);
+      });
+      this.channelManager.register(this.feishuChannel);
+      console.log("[Channels] 飞书通道已注册（启动时将激活）");
+    } else {
+      console.log("[Channels] 飞书通道未配置（设置 FEISHU_APP_ID 和 FEISHU_APP_SECRET 环境变量以启用）");
+    }
 
     const handler = (req: http.IncomingMessage, res: http.ServerResponse) => {
       this.handleRequest(req, res);
@@ -221,8 +243,7 @@ export class HttpServer {
     }
 
     const hasImages = images && images.length > 0;
-    const startTime = Date.now();
-    console.log(`[CC] 📨 收到消息: ${message.substring(0, 50)}${hasImages ? ` (附带 ${images.length} 张图片)` : ""}`);
+    console.log(`[CC] 收到消息: ${message.substring(0, 50)}...${hasImages ? ` (附带 ${images.length} 张图片)` : ""}`);
 
     // 设置 SSE 响应头
     res.writeHead(200, {
@@ -231,44 +252,555 @@ export class HttpServer {
       "Connection": "keep-alive",
     });
 
+    // 创建 Web 通道
+    const webChannel = new WebChannel({ res });
+    // 注册 Web 通道（使用唯一 ID，因为每个请求都有独立的响应）
+    const webChannelId = `web-${Date.now()}-${Math.random()}`;
+    Object.defineProperty(webChannel, 'id', { value: webChannelId, writable: false });
+    this.channelManager.register(webChannel);
+
     let currentSessionId = sessionId;
-    let eventCount = 0;
 
     try {
-      console.log(`[CC] 🔵 开始调用 adapter.chat()`);
-
       // 使用 adapter 的 chat 方法（返回 AsyncIterable）
       for await (const data of adapter.chat({ message, sessionId, cwd: this.cwd, images, model: model || undefined })) {
-        eventCount++;
-
         // 提取 session_id
         if (data && typeof data === "object" && "type" in data) {
           if (data.type === "system" && "session_id" in data) {
             currentSessionId = data.session_id as string;
-            console.log(`[CC] 📌 收到 session_id: ${currentSessionId}`);
+            // 保存到全局变量，供飞书通道复用
+            this.currentSessionId = currentSessionId;
+            webChannel.setSessionId(currentSessionId);
           }
         }
 
-        console.log(`[CC] 📤 发送事件 #${eventCount}: ${JSON.stringify(data).substring(0, 100)}...`);
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
+        // 只发送到 Web 通道，不广播到飞书
+        await webChannel.send(data);
       }
 
-      // 完成
-      const duration = Date.now() - startTime;
-      console.log(`[CC] ✅ 完成，总耗时: ${duration}ms，共发送 ${eventCount} 个事件`);
-      res.write(`data: ${JSON.stringify({ type: "done", sessionId: currentSessionId })}\n\n`);
+      // 完成 - 发送完成事件到 Web 通道
+      await webChannel.send({ type: "done", sessionId: currentSessionId } as any);
+
+      // 注销 Web 通道
+      this.channelManager.unregister(webChannelId);
+
+      // 结束 SSE 响应
       res.end();
+      console.log(`[CC] 完成`);
     } catch (error) {
-      const duration = Date.now() - startTime;
       const errMsg = error instanceof Error ? error.message : String(error);
 
-      console.error(`[CC] ❌ 错误: ${errMsg}`);
-      console.error(`[CC] ❌ 错误堆栈: ${error instanceof Error ? error.stack : 'N/A'}`);
-      console.error(`[CC] ❌ 总耗时: ${duration}ms`);
+      // 只发送错误到 Web 通道，不广播到飞书
+      try {
+        await webChannel.send({ type: "error", error: errMsg } as any);
+      } catch {
+        // 忽略发送错误
+      }
 
-      res.write(`data: ${JSON.stringify({ type: "error", error: errMsg })}\n\n`);
+      // 确保注销 Web 通道
+      this.channelManager.unregister(webChannelId);
+
       res.end();
+      console.error(`[CC] 错误: ${errMsg}`);
     }
+  }
+
+  /**
+   * 处理飞书收到的消息
+   * 由飞书通道的 WebSocket 回调调用
+   *
+   * 支持命令系统和普通对话：
+   * - 命令以 / 开头，如 /new, /sessions, /switch, /help
+   * - 普通消息会使用当前活跃会话（如果有）
+   */
+  private async processFeishuMessage(message: string, images?: Array<{ data: string; mediaType: string }>): Promise<void> {
+    console.log(`[CC] 收到飞书消息: ${message.substring(0, 50)}...${images ? ` [${images.length} 张图片]` : ""}`);
+
+    const trimmedMessage = message.trim();
+
+    // 检查是否是命令
+    if (trimmedMessage.startsWith("/")) {
+      await this.handleFeishuCommand(trimmedMessage);
+      return;
+    }
+
+    // 普通对话：检查是否有活跃会话
+    if (!this.currentSessionId) {
+      console.log(`[CC] 无活跃会话，尝试自动选择最近的历史会话`);
+
+      // 尝试获取历史会话
+      try {
+        const result = await adapter.listHistory(this.cwd, 1);
+        if (result.conversations.length > 0) {
+          // 自动选择最近的一个会话
+          const latestSession = result.conversations[0];
+          this.currentSessionId = latestSession.sessionId;
+
+          const title = latestSession.customTitle || latestSession.firstPrompt?.substring(0, 30) || "历史会话";
+          const timeAgo = this.formatTimeAgo(latestSession.lastTime || latestSession.modified || Date.now());
+
+          console.log(`[CC] 自动选择会话: ${this.currentSessionId} (${title})`);
+
+          // 通知用户已自动选择会话
+          await this.sendToFeishu(`✅ 自动使用最近的会话：${title}\n🕒 ${timeAgo}\n\n继续你的对话...`);
+        } else {
+          // 没有任何历史会话，显示帮助信息
+          console.log(`[CC] 没有历史会话，显示帮助信息`);
+          const hintMessage = "💡 还没有会话记录。\n\n" +
+                             "• 发送任意消息开始新对话\n" +
+                             "• 发送 /help 查看所有命令";
+          await this.sendToFeishu(hintMessage);
+          return;
+        }
+      } catch (err) {
+        console.error(`[CC] 获取历史会话失败:`, err);
+        await this.sendToFeishu("❌ 无法加载历史会话，请重试或发送 /new 创建新会话。");
+        return;
+      }
+    }
+
+    console.log(`[CC] 使用当前会话: ${this.currentSessionId}`);
+
+    try {
+      // 使用 adapter 处理消息（流式发送，不累积）
+      for await (const data of adapter.chat({
+        message: trimmedMessage,
+        sessionId: this.currentSessionId,
+        cwd: this.cwd,
+        images: images,
+      })) {
+        // 更新 session_id（如果返回了新的）
+        if (data && typeof data === "object") {
+          if (data.type === "system" && "session_id" in data) {
+            this.currentSessionId = data.session_id as string;
+            console.log(`[CC] 会话已更新: ${this.currentSessionId}`);
+          }
+          // v1 SDK: text 事件 - 立即发送文本
+          if (data.type === "text" && data.text) {
+            const text = String(data.text);
+            console.log(`[CC] 发送文本: ${text.substring(0, 30)}...`);
+            await this.sendToFeishu(text);
+          }
+          // v2 SDK: assistant 事件 - 按 content 数组顺序逐条发送
+          else if (data.type === "assistant") {
+            const assistantEvent = data as any;
+            if (assistantEvent.message?.content) {
+              for (const block of assistantEvent.message.content) {
+                if (block.type === "text" && block.text) {
+                  // 立即发送文本
+                  const text = String(block.text);
+                  console.log(`[CC] 发送文本: ${text.substring(0, 30)}...`);
+                  await this.sendToFeishu(text);
+                } else if (block.type === "tool_use") {
+                  // 立即发送工具调用
+                  const name = block.name || "unknown";
+                  let toolCallText = `🔧 **使用工具: ${name}**`;
+                  if (block.input && Object.keys(block.input).length > 0) {
+                    const inputStr = JSON.stringify(block.input, null, 2);
+                    if (inputStr.length > 300) {
+                      toolCallText += `\n\`\`\`\n${inputStr.substring(0, 300)}...\n\`\`\``;
+                    } else {
+                      toolCallText += `\n\`\`\`\n${inputStr}\n\`\`\``;
+                    }
+                  }
+                  console.log(`[CC] 发送工具调用: ${name}`);
+                  await this.sendToFeishu(toolCallText);
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[CC] 处理飞书消息错误:`, err);
+      await this.sendToFeishu("❌ 处理消息时出错，请重试。");
+    } finally {
+      // 任务完成后删除"正在输入"表态
+      if (this.feishuChannel) {
+        await this.feishuChannel.clearTypingIndicator();
+      }
+    }
+  }
+
+  /**
+   * 处理飞书命令
+   */
+  private async handleFeishuCommand(command: string): Promise<void> {
+    const parts = command.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const args = parts.slice(1);
+
+    console.log(`[CC] 处理飞书命令: ${cmd}`);
+
+    try {
+      switch (cmd) {
+        case "/new":
+        case "/create":
+          await this.handleNewSession(args.join(" "));
+          break;
+
+        case "/sessions":
+        case "/list":
+        case "/history":
+          await this.handleListSessions();
+          break;
+
+        case "/switch":
+          await this.handleSwitchSession(args[0]);
+          break;
+
+        case "/current":
+          await this.handleCurrentSession();
+          break;
+
+        case "/device":
+        case "/devices":
+          await this.handleDevice();
+          break;
+
+        case "/help":
+        case "/?":
+          await this.handleHelp();
+          break;
+
+        default:
+          await this.sendToFeishu(`❓ 未知命令: ${cmd}\n\n发送 /help 查看可用命令。`);
+      }
+    } catch (err) {
+      console.error(`[CC] 命令处理错误:`, err);
+      await this.sendToFeishu(`❌ 执行命令时出错: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /**
+   * 创建新会话
+   */
+  private async handleNewSession(title?: string): Promise<void> {
+    console.log(`[CC] 创建新会话${title ? `: ${title}` : ''}`);
+
+    try {
+      const replyParts: string[] = [];
+      let newSessionId: string | undefined;
+      let sessionTitle: string | undefined;
+
+      // 不传递 sessionId，让 adapter 创建新会话
+      for await (const data of adapter.chat({
+        message: title || "开始新对话",
+        cwd: this.cwd,
+      })) {
+        if (data && typeof data === "object") {
+          if (data.type === "system" && "session_id" in data) {
+            this.currentSessionId = data.session_id as string;
+            newSessionId = data.session_id as string;
+            console.log(`[CC] 新会话已创建: ${this.currentSessionId}`);
+          }
+          if (data.type === "text" && data.text) {
+            replyParts.push(String(data.text));
+          } else if (data.type === "assistant") {
+            const assistantEvent = data as any;
+            if (assistantEvent.message?.content) {
+              for (const block of assistantEvent.message.content) {
+                if (block.type === "text" && block.text) {
+                  replyParts.push(String(block.text));
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 构建会话信息响应
+      let response = "";
+      if (newSessionId) {
+        response = `✅ 新会话已创建\n\n`;
+        response += `📌 会话 ID: ${newSessionId}\n`;
+        if (title) {
+          response += `📝 标题: ${title}\n`;
+          sessionTitle = title;
+        }
+        response += `\n`;
+      }
+
+      if (replyParts.length > 0) {
+        response += replyParts.join("").trim();
+      } else if (newSessionId) {
+        response += `💡 现在发送的消息将使用此会话。`;
+      }
+
+      await this.sendToFeishu(response);
+    } catch (err) {
+      console.error(`[CC] 创建会话错误:`, err);
+      await this.sendToFeishu("❌ 创建会话失败，请重试。");
+    }
+  }
+
+  /**
+   * 列出历史会话
+   */
+  private async handleListSessions(): Promise<void> {
+    console.log(`[CC] 列出历史会话`);
+
+    try {
+      const result = await adapter.listHistory(this.cwd, 10);
+      const conversations = result.conversations;
+
+      // 调试：打印第一个会话的完整结构
+      if (conversations.length > 0) {
+        console.log(`[DEBUG] 第一个会话数据:`, JSON.stringify(conversations[0], null, 2));
+      }
+
+      if (conversations.length === 0) {
+        await this.sendToFeishu("📋 还没有历史会话。\n\n发送 /new 创建第一个会话。");
+        return;
+      }
+
+      let output = `📋 历史会话 (共 ${result.total} 个，显示最近 ${conversations.length} 个)\n\n`;
+
+      conversations.forEach((conv, index) => {
+        const isCurrent = conv.sessionId === this.currentSessionId ? " [当前]" : "";
+
+        // 尝试从多个字段获取标题
+        let title = "未命名会话";
+        if (conv.customTitle) {
+          title = conv.customTitle;
+        } else if (conv.firstPrompt) {
+          title = conv.firstPrompt.substring(0, 30);
+        } else if (conv.lastMessagePreview) {
+          title = conv.lastMessagePreview.substring(0, 30);
+        }
+
+        const timeAgo = this.formatTimeAgo(conv.lastTime || conv.modified || Date.now());
+        output += `${index + 1}. ${title}${isCurrent}\n`;
+        output += `   🕒 ${timeAgo}\n\n`;
+      });
+
+      output += `💡 使用 /switch <序号> 切换到某个会话`;
+
+      await this.sendToFeishu(output);
+    } catch (err) {
+      console.error(`[CC] 获取会话列表错误:`, err);
+      await this.sendToFeishu("❌ 获取会话列表失败，请重试。");
+    }
+  }
+
+  /**
+   * 切换到指定会话
+   */
+  private async handleSwitchSession(target: string | undefined): Promise<void> {
+    console.log(`[CC] 切换会话: ${target}`);
+
+    if (!target) {
+      await this.sendToFeishu("❓ 请指定要切换的会话序号。\n\n使用 /sessions 查看所有会话。");
+      return;
+    }
+
+    try {
+      const result = await adapter.listHistory(this.cwd, 50);
+      const conversations = result.conversations;
+
+      // 解析目标序号
+      const index = parseInt(target, 10) - 1;
+      if (isNaN(index) || index < 0 || index >= conversations.length) {
+        await this.sendToFeishu(`❓ 无效的序号: ${target}\n\n使用 /sessions 查看有效序号。`);
+        return;
+      }
+
+      const targetSession = conversations[index];
+
+      if (targetSession.sessionId === this.currentSessionId) {
+        const title = targetSession.customTitle || targetSession.firstPrompt?.substring(0, 30) || "未命名";
+        await this.sendToFeishu(`ℹ️ 已经在这个会话中了：${title}`);
+        return;
+      }
+
+      // 切换会话
+      this.currentSessionId = targetSession.sessionId;
+      const title = targetSession.customTitle || targetSession.firstPrompt?.substring(0, 30) || "未命名";
+      const timeAgo = this.formatTimeAgo(targetSession.lastTime || targetSession.modified || Date.now());
+
+      await this.sendToFeishu(
+        `✅ 已切换到会话：${title}\n\n` +
+        `🕒 最后更新: ${timeAgo}\n\n` +
+        `💡 现在发送的消息将使用这个会话。`
+      );
+    } catch (err) {
+      console.error(`[CC] 切换会话错误:`, err);
+      await this.sendToFeishu("❌ 切换会话失败，请重试。");
+    }
+  }
+
+  /**
+   * 显示当前会话信息
+   */
+  private async handleCurrentSession(): Promise<void> {
+    console.log(`[CC] 显示当前会话`);
+
+    if (!this.currentSessionId) {
+      await this.sendToFeishu("ℹ️ 当前没有活跃的会话。\n\n使用 /new 创建会话，或 /sessions 选择一个历史会话。");
+      return;
+    }
+
+    try {
+      const conversation = await adapter.getHistory(this.cwd, this.currentSessionId);
+
+      if (!conversation) {
+        await this.sendToFeishu("❌ 当前会话不存在。\n\n使用 /new 创建新会话。");
+        return;
+      }
+
+      // 从 messages 中提取标题和时间
+      let title = "未命名会话";
+      let firstMessageTime: string | undefined;
+      let lastMessageTime: string | undefined;
+
+      for (const msg of conversation.messages) {
+        if (msg.type === "custom-title" && msg.customTitle) {
+          title = msg.customTitle;
+        }
+        // 尝试从消息中提取时间（如果有的话）
+        if (msg.timestamp) {
+          if (!firstMessageTime) firstMessageTime = msg.timestamp;
+          lastMessageTime = msg.timestamp;
+        }
+      }
+
+      // 如果没有自定义标题，使用第一条用户消息作为标题
+      if (title === "未命名会话") {
+        const firstUserMsg = conversation.messages.find(m => m.type === "user" && m.message);
+        if (firstUserMsg?.message?.content) {
+          const content = firstUserMsg.message.content;
+          // content 可能是字符串或对象数组
+          if (typeof content === "string") {
+            title = content.substring(0, 30);
+          } else if (Array.isArray(content)) {
+            // 查找第一个 text 类型的 block
+            const textBlock = content.find((b: any) => b.type === "text" && b.text);
+            if (textBlock) {
+              title = textBlock.text.substring(0, 30);
+            }
+          }
+        }
+      }
+
+      const timeStr = lastMessageTime ? this.formatTimeAgo(lastMessageTime) : "未知";
+      const msgCount = conversation.messages.length;
+
+      await this.sendToFeishu(
+        `📌 当前会话信息\n\n` +
+        `标题: ${title}\n` +
+        `ID: ${conversation.sessionId}\n` +
+        `消息数: ${msgCount}\n` +
+        `最后活动: ${timeStr}`
+      );
+    } catch (err) {
+      console.error(`[CC] 获取会话信息错误:`, err);
+      await this.sendToFeishu("❌ 获取会话信息失败，请重试。");
+    }
+  }
+
+  /**
+   * 显示设备信息
+   */
+  private async handleDevice(): Promise<void> {
+    console.log("[CC] 查询设备信息");
+
+    try {
+      const config = loadConfig(this.cwd) as DeviceConfig;
+
+      if (!config) {
+        await this.sendToFeishu("❌ 未找到设备配置");
+        return;
+      }
+
+      const createdAt = new Date(config.createdAt);
+      const createdTimeStr = createdAt.toLocaleString("zh-CN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      let output = "📱 当前设备信息\n\n";
+      output += `设备 ID: ${config.deviceId}\n`;
+      output += `配对码: ${config.pairCode}\n`;
+
+      if (config.routeToken) {
+        output += `连接码: ${config.routeToken}\n`;
+      }
+
+      if (config.authToken) {
+        output += `状态: ✅ 已配对\n`;
+      } else {
+        output += `状态: ⏳ 未配对\n`;
+      }
+
+      output += `\n创建时间: ${createdTimeStr}`;
+
+      await this.sendToFeishu(output);
+    } catch (err) {
+      console.error(`[CC] 获取设备信息错误:`, err);
+      await this.sendToFeishu("❌ 获取设备信息失败，请重试。");
+    }
+  }
+
+  /**
+   * 显示帮助信息
+   */
+  private async handleHelp(): Promise<void> {
+    const helpText =
+      "📖 飞书命令帮助\n\n" +
+      "**会话管理**\n" +
+      "/new [标题] - 创建新会话\n" +
+      "/sessions - 查看历史会话\n" +
+      "/switch <序号> - 切换到某个会话\n" +
+      "/current - 显示当前会话信息\n\n" +
+      "**设备管理**\n" +
+      "/device - 查看当前设备信息\n\n" +
+      "**其他**\n" +
+      "/help - 显示此帮助信息\n\n" +
+      "**示例**\n" +
+      "/new 分析代码\n" +
+      "/sessions\n" +
+      "/switch 1\n" +
+      "/device\n\n" +
+      "💡 提示：非命令消息会发送到当前活跃会话";
+
+    await this.sendToFeishu(helpText);
+  }
+
+  /**
+   * 发送消息到飞书
+   */
+  private async sendToFeishu(text: string): Promise<void> {
+    await this.channelManager.broadcast({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text }],
+      },
+    } as any);
+  }
+
+  /**
+   * 格式化时间显示
+   */
+  private formatTimeAgo(timestamp: string | number): string {
+    const now = Date.now();
+    const time = typeof timestamp === "string" ? new Date(timestamp).getTime() : timestamp;
+    const diff = now - time;
+
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "刚刚";
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+
+    const date = new Date(time);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
   }
 
   private async handleHistoryList(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -427,22 +959,28 @@ export class HttpServer {
     });
   }
 
-  start(): Promise<number> {
+  async start(): Promise<number> {
     return new Promise((resolve, reject) => {
       // 监听错误事件
       this.server.once('error', (err) => {
         reject(err);
       });
 
-      const port = Number(process.env.PORT || 8080);
-      this.server.listen(port, () => {
+      const port = Number(process.env.PORT || 18080);
+      this.server.listen(port, async () => {
         console.log(`[${this.isTls ? "HTTPS" : "HTTP"}] 服务启动在端口 ${port}`);
+
+        // 启动所有通道（包括飞书长连接）
+        await this.channelManager.startAll();
+
         resolve(port);
       });
     });
   }
 
   stop() {
+    // 停止所有通道
+    this.channelManager.stopAll();
     this.server.close();
   }
 }

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * 飞书通知脚本 - 直接生成并发送
+ * 飞书通知脚本 - 跨平台版本
  * 用法: node send.js "标题" "内容" [颜色]
+ * 颜色: blue(默认), green, orange, red
  */
 
 const [,, title, content, color = 'blue'] = process.argv;
@@ -11,10 +12,27 @@ if (!title || !content) {
   process.exit(1);
 }
 
-const webhook = 'https://open.feishu.cn/open-apis/bot/v2/hook/74d04a99-ba1d-4567-97c2-e0e2926c6b2f';
+// 读取配置文件
+const fs = require('fs');
+const path = require('path');
+const configPath = path.join(__dirname, 'config.json');
 
-// 处理换行符
-const processedContent = content.replace(/\\n/g, '\n');
+let webhook;
+try {
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  webhook = config.webhook;
+} catch (err) {
+  console.error('❌ 无法读取配置文件:', err.message);
+  process.exit(1);
+}
+
+if (!webhook || webhook === 'YOUR_FEISHU_WEBHOOK_HERE') {
+  console.error('❌ 飞书 webhook 未配置');
+  console.error('');
+  console.error('请在 config.json 中配置 webhook 地址');
+  console.error('详见：.claude/skills/tell-me/配置SOP.md');
+  process.exit(1);
+}
 
 const card = {
   msg_type: 'interactive',
@@ -26,7 +44,7 @@ const card = {
     elements: [
       {
         tag: 'div',
-        text: { content: processedContent, tag: 'lark_md' }
+        text: { content, tag: 'lark_md' }
       },
       {
         tag: 'note',
@@ -38,7 +56,7 @@ const card = {
 
 fetch(webhook, {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json; charset=utf-8' },
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(card)
 })
   .then(res => res.json())
