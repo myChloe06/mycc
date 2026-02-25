@@ -1,6 +1,6 @@
 # Skills 和 MCPs 清单
 
-更新时间：2026-02-10 23:00
+更新时间：2026-02-12 13:00
 
 > 本文档记录当前项目安装的所有 Skills 和 MCPs，用于快速重装和迁移到新项目。
 
@@ -166,6 +166,55 @@
 - **Star 数**：~11,700
 - **触发词**："任务计划"、"项目管理"、"进度跟踪"、"任务分解"
 - **配置**：使用 markdown 文件作为任务数据库
+- **推荐指数**：⭐⭐⭐⭐⭐
+
+### OpenSpec（Spec-Driven Development 工具）
+
+- **来源**：[Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)
+- **功能**：Spec-Driven Development (SDD) 工具，规范 AI 编码助手的行为。让人类和 AI 在写代码前先达成共识（spec），然后按 spec 生成代码，减少 AI 幻觉。
+- **版本**：1.1.1（2026-01-30 发布）
+- **安装方式**：`npm install -g @fission-ai/openspec@latest`
+- **初始化**：`openspec init --tools claude`
+- **命令**：
+  - `/opsx:new`：开始一个新改动（新功能/修复）
+  - `/opsx:continue`：继续当前改动，生成下一个 artifact
+  - `/opsx:apply`：开始实施任务
+  - `/opsx:explore`：探索模式，思考需求
+  - `/opsx:ff`：快速模式，一次性生成所有 artifacts
+  - `/opsx:verify`：验证实现是否正确
+  - `/opsx:archive`：归档完成的改动
+  - `/opsx:sync`：同步 spec 到主分支
+  - `/opsx:onboard`：引导教程，走一遍完整流程
+  - `/opsx:bulk-archive`：批量归档多个改动
+- **配置**：
+  - 无需 API Key
+  - 兼容 20+ AI 工具（Claude、Cursor、Copilot、Cline 等）
+  - 支持多种包管理器（npm、pnpm、yarn、bun、nix）
+- **推荐指数**：⭐⭐⭐⭐⭐
+- **注意**：这是一个全局 CLI 工具，不是 skill。初始化后会在 `.claude/commands/opsx/` 生成命令文件
+
+### openspec-helper（OpenSpec 助手 - 完全自动化版）
+
+- **来源**：本地开发
+- **功能**：封装 OpenSpec 完整工作流，让用户用自然语言就能进行规范开发。**完全自动化**：用户不需要输入任何命令，只需用自然语言确认。
+- **触发词**：
+  - "我想开发/做个/写个..."（新功能、新项目）
+  - "帮我做个/写个..."（新功能、新项目）
+  - "新增/添加..."功能
+  - "我要做一个新网站/新应用"
+  - "不知道从哪开始"
+- **工作流程**：
+  1. 检测到触发场景时，询问是否使用 OpenSpec
+  2. 用户确认"用"后，自动命名并创建变更
+  3. 提供常见功能选项，不让用户盲目猜测
+  4. 自动生成所有 artifacts（spec.md、tasks.md）
+  5. 用户确认"开始"后，自动调用实施命令
+  6. 所有任务完成后，提示验证和归档
+- **用户体验**：
+  - 只需用自然语言描述需求、做选择、确认继续
+  - 所有 `/opsx:xxx` 命令由 skill 自动调用
+  - 目标：用嘴实现功能，不动手
+- **配置**：依赖 OpenSpec CLI（需先安装）
 - **推荐指数**：⭐⭐⭐⭐⭐
 
 ### markitdown（微软文档转换工具）

@@ -422,7 +422,30 @@ lsof -i :18080 -t | xargs kill 2>/dev/null
 
 > 以下是可选的扩展功能，根据你的需求添加。
 
-<!--
-## 自定义介入规则
-定义 cc 在什么情况下应该主动提醒你。
--->
+## 主动提醒规则：OpenSpec 使用场景
+
+**什么时候提醒用户用 OpenSpec**：
+
+当用户说以下内容时，主动建议使用 OpenSpec：
+
+| 用户说的 | cc 的回应 |
+|---------|----------|
+| "我想开发一个新功能" | "要不要用 OpenSpec 来规范开发流程？输入 `/opsx:new` 开始" |
+| "我要做一个新网站/新应用" | "推荐用 OpenSpec 来规划。输入 `/opsx:new` 开始，或者先 `/opsx:onboard` 走一遍教程" |
+| "帮我做个 XXX"（XXX 是新功能/新项目） | "用 OpenSpec 规划一下？先 `/opsx:new` 创建变更，然后按步骤来" |
+| "不知道从哪里开始" | "试试 OpenSpec 的探索模式：`/opsx:explore`，帮你理清思路" |
+| "这个需求怎么实现" | "用 OpenSpec 先规划 spec，再实现：`/opsx:new`" |
+
+**核心原则**：
+- 用户要做**新功能/新项目**时 → 提醒用 `/opsx:new`
+- 用户**思路不清晰**时 → 提醒用 `/opsx:explore`
+- 用户**第一次用**时 → 建议先 `/opsx:onboard` 走教程
+
+**OpenSpec 常用命令速查**：
+- `/opsx:new` — 开始新功能
+- `/opsx:continue` — 继续下一步
+- `/opsx:apply` — 开始实施
+- `/opsx:explore` — 探索模式
+- `/opsx:archive` — 完成后归档
+
+## 自定义介入规则（已废弃，移到上面）
